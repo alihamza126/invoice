@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import Pdfdoc from './Pdfdoc';
 
-const PdfClient = ({ allData }) => {
+const PdfClient = ({ allData,companyInfo}) => {
     const [data, setData] = useState(allData);
 
     useEffect(() => {
@@ -17,7 +17,7 @@ const PdfClient = ({ allData }) => {
             {/* PDF Preview */}
             <div className="my-4">
                 <PDFViewer style={{ width: '100%', height: '500px' }}>
-                    <Pdfdoc allData={data} />
+                    <Pdfdoc allData={data} companyInfo={companyInfo}/>
                 </PDFViewer>
             </div>
         </div>

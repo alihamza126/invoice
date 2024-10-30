@@ -6,7 +6,7 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 const styles = StyleSheet.create({
     page: {
         padding: 20,
-        fontSize: 10,
+        fontSize: 5,
         backgroundColor: '#f5f5f5',
     },
     container: {
@@ -23,12 +23,12 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     companyInfo: {
-        fontSize: 12,
+        fontSize: 8,
         fontWeight: 'bold',
         color: '#333',
     },
     invoiceTitle: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#333',
     },
@@ -66,10 +66,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 5,
         fontSize: 12,
-        color: '#4a5568',
+        color: '#333',
+
     },
     textGray: {
         color: '#4a5568',
+        fontSize: 12,
     },
     table: {
         marginTop: 10,
@@ -83,12 +85,15 @@ const styles = StyleSheet.create({
     },
     tableHeader: {
         fontWeight: 'bold',
-        color: '#333',
+        color: '#111',
+        fontSize: 15,
     },
     tableCell: {
         flex: 1,
         paddingHorizontal: 5,
         textAlign: 'right',
+        fontSize: 10,
+        color: '#333',
     },
     tableCellLeft: {
         flex: 2,
@@ -101,12 +106,19 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         marginTop: 15,
         paddingVertical: 5,
-        borderTop: '1px solid #e0e0e0',
     },
     totalLabel: {
         fontWeight: 'bold',
         fontSize: 12,
         marginRight: 10,
+        border: '1px solid #e0e0e0',
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+    },
+    totalValue: {
+        fontWeight: 'bold',
+        fontSize: 12,
+        color: '#333',
     },
     footer: {
         textAlign: 'center',
@@ -120,9 +132,18 @@ const styles = StyleSheet.create({
 });
 
 // Define document structure
-const Pdfdoc = ({ allData }) => {
-    console.log(allData && allData)
+const Pdfdoc = ({ allData, companyInfo }) => {
+    console.log(companyInfo, "companyInfo")
     const total = allData[1]?.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+    function getCurrentDateFormatted() {
+        const currentDate = new Date();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const year = currentDate.getFullYear();
+        // Format the date as MM/DD/YYYY
+        return `${month}/${day}/${year}`;
+    }
 
     return (
         <Document>
@@ -132,10 +153,10 @@ const Pdfdoc = ({ allData }) => {
                     {/* Header */}
                     <View style={styles.header}>
                         <View>
-                            <Text style={styles.companyInfo}>Your Company Name</Text>
-                            <Text style={styles.textGray}>1234 Business Rd, Business City, CA</Text>
-                            <Text style={styles.textGray}>Phone: (123) 456-7890</Text>
-                            <Text style={styles.textGray}>Email: info@yourcompany.com</Text>
+                            <Text style={styles.companyInfo}>Company Name: {companyInfo?.companyName}</Text>
+                            <Text style={styles.companyInfo}>Address: {companyInfo?.address}</Text>
+                            <Text style={styles.companyInfo}>Phone: {companyInfo?.phone}</Text>
+                            <Text style={styles.companyInfo}>Email: {companyInfo?.email}</Text>
                         </View>
                         <Text style={styles.invoiceTitle}>INVOICE</Text>
                     </View>
@@ -144,7 +165,7 @@ const Pdfdoc = ({ allData }) => {
                     {/* Invoice ID and Date */}
                     <View style={styles.invoiceId}>
                         <Text>Invoice #: <Text style={styles.textGray}>001</Text></Text>
-                        <Text>Invoice Date: <Text style={styles.textGray}>03/07/2023</Text></Text>
+                        <Text>Invoice Date: <Text style={styles.textGray}>{getCurrentDateFormatted()}</Text></Text>
 
                     </View>
 
@@ -152,17 +173,17 @@ const Pdfdoc = ({ allData }) => {
                     <View style={styles.topShipInfo}>
                         <View style={styles.billTo}>
                             <Text style={styles.sectionTitle}>To:</Text>
-                            <Text>Recipient Name: <Text style={styles.textGray}>{allData[0]?.name}</Text></Text>
-                            <Text>Email: <Text style={styles.textGray}>{allData[0]?.email}</Text></Text>
-                            <Text>Phone:   <Text style={styles.textGray}>{allData[0]?.phone}</Text></Text>
-                            <Text>Address: <Text style={styles.textGray}>{allData[0]?.deliveryAddress}</Text></Text>
+                            <Text style={styles.sectionTitle}>Recipient Name: <Text style={styles.textGray}>{allData[0]?.name}</Text></Text>
+                            <Text style={styles.sectionTitle}>Email: <Text style={styles.textGray}>{allData[0]?.email}</Text></Text>
+                            <Text style={styles.sectionTitle}>Phone:   <Text style={styles.textGray}>{allData[0]?.phone}</Text></Text>
+                            <Text style={styles.sectionTitle}>Address: <Text style={styles.textGray}>{allData[0]?.deliveryAddress}</Text></Text>
                         </View>
                         <View style={styles.billTo}>
                             <Text style={styles.sectionTitle}>Ship To:</Text>
-                            <Text>Recipient Name: <Text style={styles.textGray}>Ali Hamza</Text></Text>
-                            <Text>Email: <Text style={styles.textGray}>info@laravel.com</Text></Text>
-                            <Text>Phone:   <Text style={styles.textGray}>03037828419</Text></Text>
-                            <Text>Address: <Text style={styles.textGray}>Bahalpur pakistan</Text></Text>
+                            <Text style={styles.sectionTitle}>Recipient Name: <Text style={styles.textGray}>Ali Hamza</Text></Text>
+                            <Text style={styles.sectionTitle}>Email: <Text style={styles.textGray}>info@laravel.com</Text></Text>
+                            <Text style={styles.sectionTitle}>Phone:   <Text style={styles.textGray}>03037828419</Text></Text>
+                            <Text style={styles.sectionTitle}>Address: <Text style={styles.textGray}>Bahalpur pakistan</Text></Text>
                         </View>
                     </View>
 
@@ -180,7 +201,7 @@ const Pdfdoc = ({ allData }) => {
                         {
                             allData[1]?.map((item, index) => (
                                 <View style={styles.tableRow} key={index}>
-                                    <Text style={styles.tableCellLeft}>{item.product}</Text>
+                                    <Text style={[styles.tableCell, styles.tableCellLeft]}>{item.product}</Text>
                                     <Text style={styles.tableCell}>{item.quantity}</Text>
                                     <Text style={styles.tableCell}>$ {item.price}</Text>
                                     <Text style={styles.tableCell}>$ {item.price * item.quantity}</Text>
@@ -192,17 +213,17 @@ const Pdfdoc = ({ allData }) => {
                     {/* Totals Section */}
                     <View style={styles.totalSection}>
                         <View style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '3', marginTop: '8' }}>
-                            <Text style={styles.totalLabel}>Subtotal : <Text style={{ padding: '3', border: "2px soild gray" }}>{total}</Text></Text>
-                            <Text style={styles.totalLabel}>Tax ({allData[0]?.email}%) : $1,050.00</Text>
-                            <Text style={[styles.totalLabel, { fontSize: 14 }]}>Total Due : $15,550.00</Text>
+                            <Text style={styles.totalLabel}>Subtotal : <Text style={styles.totalValue}>{total}</Text></Text>
+                            <Text style={styles.totalLabel}>Tax :<Text style={styles.totalValue}> $1,050.00</Text></Text>
+                            <Text style={[styles.totalLabel, { fontSize: 14 }]}>Total Due : <Text style={styles.totalValue}> $1,050.00</Text></Text>
                         </View>
                     </View>
 
                     {/* Footer */}
                     <View style={styles.footer}>
-                        <Text>Thank you for your business!</Text>
-                        <Text>Payment due within 30 days.</Text>
-                        <Text>If you have any questions, contact us at info@yourcompany.com</Text>
+                        <Text style={{ fontSize: 12 }}>{companyInfo?.policy}</Text>
+                        <Text style={{ fontSize: 12 }}>----------------------------------------------</Text>
+                        <Text style={{ fontSize: 12 }}>Thank you for your business!</Text>
                     </View>
                 </View>
             </Page>

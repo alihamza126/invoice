@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { FaCheck, FaChevronDown } from "react-icons/fa6";
@@ -28,6 +28,7 @@ export function Comboboxproducts({ products, value, onChange }) {
             value: product.productName,
             label: product.productName,
             price: product.salePrice,
+            quantity: product.productQuantity, // Capture productQuantity
         })));
     }, [products]);
 
@@ -46,7 +47,7 @@ export function Comboboxproducts({ products, value, onChange }) {
                     <FaChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[250px] p-0"> {/* Increased width for price */}
+            <PopoverContent className="w-[250px] p-0">
                 <Command>
                     <CommandInput placeholder="Search product..." />
                     <CommandList>
@@ -57,10 +58,13 @@ export function Comboboxproducts({ products, value, onChange }) {
                                     key={product.value}
                                     value={product.value}
                                     onSelect={() => {
-                                        setOpen(false);
-                                        // Pass both product name and price
-                                        onChange(product.value, product.price);
+                                        // Only allow selection if quantity is greater than 0
+                                        if (product.quantity > 0) {
+                                            setOpen(false);
+                                            onChange(product.value, product.price);
+                                        }
                                     }}
+                                    className={product.quantity === 0 ? "opacity-50 cursor-not-allowed" : ""}
                                 >
                                     <FaCheck
                                         className={cn(
@@ -69,8 +73,13 @@ export function Comboboxproducts({ products, value, onChange }) {
                                         )}
                                     />
                                     <div className="flex justify-between w-full">
-                                        <span>{product.label}</span>
+                                        <span className={product.quantity === 0 ? "line-through text-gray-500" : ""}>
+                                            {product.label} {product.quantity > 0 ? <span className="text-gray-500">({product.quantity})</span>:<span className="text-gray-500">(0)</span>}
+                                        </span>
                                         <span className="text-gray-500">${product.price}</span>
+                                        {product.quantity === 0 && (
+                                            <span className="text-red-500 text-xs ml-2">Out of stock</span>
+                                        )}
                                     </div>
                                 </CommandItem>
                             ))}

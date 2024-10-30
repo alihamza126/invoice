@@ -22,16 +22,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+     <NextTopLoader 
+          height="4"
+          size="4"
+          style={{zIndex: 9999}}
+        />
       <body
         className={` ${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
-        <NextTopLoader 
-          height="4"
-          duration="4"
-          size="4"
-          style={{zIndex: 9999}}
-
-        />
+       
         <AuthProvider>
           {children}
         </AuthProvider>

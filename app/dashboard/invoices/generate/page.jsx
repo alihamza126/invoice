@@ -6,12 +6,16 @@ import { FcRules } from "react-icons/fc";
 import { FaTrash } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Toast, ToastProvider } from "@/lib/tostify";
 import { Comboboxtax } from "@/components/common/ComboBoxTax";
 import { Button } from "@/components/ui/button"
 import { BsBuildingGear } from "react-icons/bs";
 import PdfClient from "@/components/common/PdfClient";
+import { FcUpLeft } from "react-icons/fc";
+import { useRouter } from "next/navigation";
+
+
 
 
 const provinces = [
@@ -31,6 +35,8 @@ const provinces = [
 ];
 
 const Page = () => {
+  const router = new useRouter()
+
 
   const [allData, setAllData] = useState([]);
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -39,11 +45,23 @@ const Page = () => {
   const [sameAddress, setSameAddress] = useState(false);
   const [selectedTaxRate, setSelectedTaxRate] = useState(""); // State for tax rate
   const [totalTaxRate, setTotalTaxRate] = useState(0); // State for total tax rate
+  const [companyInfo, setCompanyInfo] = useState({});
 
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        const companyDocRef = doc(db, 'companyInfo', 'mainCompanyInfo');
+        try {
+          const docSnap = await getDoc(companyDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setCompanyInfo(data);
+          }
+        } catch (error) {
+          console.error("Error fetching company information:", error);
+        }
+
         const productsCollection = collection(db, "products");
         const productSnapshot = await getDocs(productsCollection);
         const productList = productSnapshot.docs.map(doc => ({
@@ -66,12 +84,20 @@ const Page = () => {
     }
     data.taxRate = selectedTaxRate; // Include the selected tax rate in the form data
     data.totalTaxRate = totalTaxRate; // Include the selected total tax rate in the form data
-    // console.log(data);
     setAllData([data, items]);
-    // console.log(items);
+    Toast.success("Invoice generated successfully", { autoClose: 2000 });
   };
 
-
+  const PreviewPdf = () => {
+    const onSubmit = data => {
+      if (sameAddress) {
+        data.deliveryAddress = data.billingAddress;
+      }
+      data.taxRate = selectedTaxRate; // Include the selected tax rate in the form data
+      data.totalTaxRate = totalTaxRate; // Include the selected total tax rate in the form data
+      setAllData([data, items]);
+    };
+  }
 
   const addItem = () => {
     setItems([...items, { product: "", quantity: 1, price: 0 }]);
@@ -91,6 +117,17 @@ const Page = () => {
     setItems(items.filter((_, i) => i !== index));
     Toast.warn("Item removed", { autoClose: 500 });
   };
+
+  function generateInvoiceNumber(isFinalInvoice = false) {
+    const lastInvoiceOrder=0;
+    if (isFinalInvoice) {
+      currentDraftVersion = 1;
+    } else {
+      currentDraftVersion++; 
+    }
+    const invoiceNumber = `#${String(lastInvoiceOrder).padStart(3, '0')}-${currentDraftVersion}`;
+    return invoiceNumber;
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -241,22 +278,28 @@ const Page = () => {
         {/* Invoice Preview Section */}
         {/* ... (Remaining code for Invoice Preview section) */}
         <div className="w-[45%] bg-white p-6 rounded-lg shadow border h-screen sticky top-6">
-          <h2 className="text-xl font-semibold mb-4">Preview</h2>
+          <h2 className="text-xl font-semibold mb-4 flex justify-between">Preview
+            <Button
+              title="Genrate new invoice"
+              onClick={() => window.location.reload()}
+            >
+              New Invoice <FcUpLeft size={15} />
+            </Button>
+          </h2>
 
           <div className="p-4">
-            <PdfClient allData={allData} />
+            <PdfClient allData={allData} companyInfo={companyInfo} />
           </div>
         </div>
 
       </div>
-      <div className="p-2 w-1/2 flex justify-end mt-5">
+      <div className="p-2 w-1/2 flex gap-6 justify-end mt-5">
         <Button
           className=" bg-blue-600 text-white font-semibold rounded-lg py-4 px-4 shadow-md hover:bg-blue-700 transition duration-200 ease-in-out"
         >
           Genrate Invoice <BsBuildingGear size={15} />
         </Button>
       </div>
-
     </form>
   );
 };
