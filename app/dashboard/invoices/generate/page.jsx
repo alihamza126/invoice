@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { FcRules } from "react-icons/fc";
 import { FaTrash } from "react-icons/fa";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Toast, ToastProvider } from "@/lib/tostify";
 import { Comboboxtax } from "@/components/common/ComboBoxTax";
@@ -18,6 +18,10 @@ import { GiCardPickup } from "react-icons/gi";
 import { FcShipped } from "react-icons/fc";
 import { FcCheckmark } from "react-icons/fc";
 import { FcHighPriority } from "react-icons/fc";
+import Pdfdoc from "@/components/common/Pdfdoc";
+import { pdf } from "@react-pdf/renderer";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import Loader from "@/lib/loader";
 
 
 
@@ -53,6 +57,7 @@ const Page = () => {
   const [deliveryType, setDeliveryType] = useState("delivery"); // State for delivery type
   const [isTaxApplied, setIsTaxApplied] = useState(false);  // State for tax applied
   const [lastInvoiceOrder, setLastInvoiceOrder] = useState(0);
+  const [loading, setLoading] = useState(false)
 
 
   useEffect(() => {
@@ -86,6 +91,7 @@ const Page = () => {
   }, []);
 
   const onSubmit = async (data) => {
+    setLoading(true);
     if (sameAddress) {
       data.deliveryAddress = data.billingAddress;
     }
@@ -101,14 +107,27 @@ const Page = () => {
     const invoiceData = { ...data, items };
 
     try {
-      await addDoc(collection(db, 'invoices'), invoiceData); // Store data in Firestore
+      // Save data temporarily to use for PDF generation
       setAllData([data, items]);
+
+      // Generate and upload PDF to Firebase Storage
+      const pdfUrl = await handleGenerateAndUploadPdf([data, items], companyInfo);
+
+      // Add the PDF download URL to the invoice data
+      invoiceData.pdfUrl = pdfUrl;
+
+      // Store data with PDF URL in Firestore
+      await addDoc(collection(db, 'invoices'), invoiceData);
+
       Toast.success("Invoice generated successfully", { autoClose: 2000 });
     } catch (error) {
       console.error("Error storing invoice in Firebase: ", error);
-      Toast.error("Failed to Genrated", { autoClose: 2000 });
+      Toast.error("Failed to Generate Invoice", { autoClose: 2000 });
+      setLoading(false);
     }
+    setLoading(false);
   };
+
 
   const PreviewPdf = () => {
     const onSubmit = data => {
@@ -150,6 +169,19 @@ const Page = () => {
     const invoiceNumber = `#${String(lastInvoiceOrder).padStart(3, '0')}-${currentDraftVersion}`;
     return invoiceNumber;
   }
+
+  const handleGenerateAndUploadPdf = async (allData, companyInfo) => {
+    const pdfBlob = await pdf(<Pdfdoc allData={allData} companyInfo={companyInfo} />).toBlob();
+
+    // Upload to Firebase Storage
+    const storageRef = ref(storage, `invoices/invoice-${allData[0]?.invoiceNumber}.pdf`);
+    const snapshot = await uploadBytes(storageRef, pdfBlob);
+
+    // Get download URL
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL; // Return this URL to save in Firestore
+  };
+
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -380,9 +412,10 @@ const Page = () => {
       {/* / new invoice genrate */}
       <div className="p-2 w-1/2 flex gap-6 justify-end mt-5">
         <Button
+          disabled={loading}
           className=" bg-blue-600 text-white font-semibold rounded-lg py-4 px-4 shadow-md hover:bg-blue-700 transition duration-200 ease-in-out"
         >
-          Genrate Invoice <BsBuildingGear size={15} />
+          {loading ? <Loader /> : <>Genrate Invoice <BsBuildingGear size={15} /></>}
         </Button>
       </div>
     </form>
