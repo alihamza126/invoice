@@ -133,7 +133,8 @@ const styles = StyleSheet.create({
 
 // Define document structure
 const Pdfdoc = ({ allData, companyInfo }) => {
-    console.log(companyInfo, "companyInfo")
+    // console.log(companyInfo, "companyInfo")
+    console.log(allData)
     const total = allData[1]?.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
     function getCurrentDateFormatted() {
@@ -164,7 +165,7 @@ const Pdfdoc = ({ allData, companyInfo }) => {
 
                     {/* Invoice ID and Date */}
                     <View style={styles.invoiceId}>
-                        <Text>Invoice #: <Text style={styles.textGray}>001</Text></Text>
+                        <Text>Invoice: <Text style={[styles.totalLabel, { fontSize: 14 }]}>{allData[0]?.invoiceNumber}</Text></Text>
                         <Text>Invoice Date: <Text style={styles.textGray}>{getCurrentDateFormatted()}</Text></Text>
 
                     </View>
@@ -176,14 +177,14 @@ const Pdfdoc = ({ allData, companyInfo }) => {
                             <Text style={styles.sectionTitle}>Recipient Name: <Text style={styles.textGray}>{allData[0]?.name}</Text></Text>
                             <Text style={styles.sectionTitle}>Email: <Text style={styles.textGray}>{allData[0]?.email}</Text></Text>
                             <Text style={styles.sectionTitle}>Phone:   <Text style={styles.textGray}>{allData[0]?.phone}</Text></Text>
-                            <Text style={styles.sectionTitle}>Address: <Text style={styles.textGray}>{allData[0]?.deliveryAddress}</Text></Text>
+                            <Text style={styles.sectionTitle}>Address: <Text style={styles.textGray}>{allData[0]?.billingAddress}</Text></Text>
                         </View>
                         <View style={styles.billTo}>
-                            <Text style={styles.sectionTitle}>Ship To:</Text>
-                            <Text style={styles.sectionTitle}>Recipient Name: <Text style={styles.textGray}>Ali Hamza</Text></Text>
-                            <Text style={styles.sectionTitle}>Email: <Text style={styles.textGray}>info@laravel.com</Text></Text>
-                            <Text style={styles.sectionTitle}>Phone:   <Text style={styles.textGray}>03037828419</Text></Text>
-                            <Text style={styles.sectionTitle}>Address: <Text style={styles.textGray}>Bahalpur pakistan</Text></Text>
+                            <Text style={styles.sectionTitle}>Ship To: same as billing  {(allData[0]?.billingAddress==allData[0]?.deliveryAddress)?'Yes [X] No [ ]':'Yes [ ] No [X]'}</Text>
+                            <Text style={styles.sectionTitle}>Recipient Name: <Text style={styles.textGray}>{(allData[0]?.billingAddress!=allData[0]?.deliveryAddress)&&allData[0]?.name}</Text></Text>
+                            <Text style={styles.sectionTitle}>Email: <Text style={styles.textGray}>{(allData[0]?.billingAddress!=allData[0]?.deliveryAddress)&&allData[0]?.email}</Text></Text>
+                            <Text style={styles.sectionTitle}>Phone:   <Text style={styles.textGray}>{(allData[0]?.billingAddress!=allData[0]?.deliveryAddress)&&allData[0]?.phone}</Text></Text>
+                            <Text style={styles.sectionTitle}>Address: <Text style={styles.textGray}>{(allData[0]?.billingAddress!=allData[0]?.deliveryAddress)&&allData[0]?.deliveryAddress}</Text></Text>
                         </View>
                     </View>
 
@@ -213,9 +214,9 @@ const Pdfdoc = ({ allData, companyInfo }) => {
                     {/* Totals Section */}
                     <View style={styles.totalSection}>
                         <View style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '3', marginTop: '8' }}>
-                            <Text style={styles.totalLabel}>Subtotal : <Text style={styles.totalValue}>{total}</Text></Text>
-                            <Text style={styles.totalLabel}>Tax :<Text style={styles.totalValue}> $1,050.00</Text></Text>
-                            <Text style={[styles.totalLabel, { fontSize: 14 }]}>Total Due : <Text style={styles.totalValue}> $1,050.00</Text></Text>
+                            <Text style={styles.totalLabel}>Subtotal : <Text style={styles.totalValue}>$ {total}</Text></Text>
+                            <Text style={styles.totalLabel}>Tax :<Text style={styles.totalValue}> $ {allData[0]?.totalTaxRate}</Text></Text>
+                            <Text style={[styles.totalLabel, { fontSize: 14 }]}>Total Due : <Text style={styles.totalValue}> $ {Number(total)-Number(allData[0]?.totalTaxRate)}</Text></Text>
                         </View>
                     </View>
 

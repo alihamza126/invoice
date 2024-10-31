@@ -47,7 +47,7 @@ export function Comboboxproducts({ products, value, onChange }) {
                     <FaChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[250px] p-0">
+            <PopoverContent className="w-full p-0">
                 <Command>
                     <CommandInput placeholder="Search product..." />
                     <CommandList>
@@ -72,11 +72,11 @@ export function Comboboxproducts({ products, value, onChange }) {
                                             value === product.value ? "opacity-100" : "opacity-0"
                                         )}
                                     />
-                                    <div className="flex justify-between w-full">
+                                    <div className="flex justify-between w-full gap-1">
                                         <span className={product.quantity === 0 ? "line-through text-gray-500" : ""}>
                                             {product.label} {product.quantity > 0 ? <span className="text-gray-500">({product.quantity})</span>:<span className="text-gray-500">(0)</span>}
                                         </span>
-                                        <span className="text-gray-500">${product.price}</span>
+                                        <span className="text-gray-500 ms-2">${product.price}</span>
                                         {product.quantity === 0 && (
                                             <span className="text-red-500 text-xs ml-2">Out of stock</span>
                                         )}

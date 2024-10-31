@@ -53,7 +53,7 @@ export function Comboboxtax({ products, value, onChange }) {
             <PopoverContent className="w-full p-0">
                 <Command>
                     <CommandInput
-                        placeholder="Search product..."
+                        placeholder="Search state..."
                         onChange={(e) => setSearchTerm(e.target.value)} // Update search term on input change
                     />
                     <CommandList>

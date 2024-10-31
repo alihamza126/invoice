@@ -6,7 +6,7 @@ import { FcRules } from "react-icons/fc";
 import { FaTrash } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Toast, ToastProvider } from "@/lib/tostify";
 import { Comboboxtax } from "@/components/common/ComboBoxTax";
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,10 @@ import { BsBuildingGear } from "react-icons/bs";
 import PdfClient from "@/components/common/PdfClient";
 import { FcUpLeft } from "react-icons/fc";
 import { useRouter } from "next/navigation";
+import { GiCardPickup } from "react-icons/gi";
+import { FcShipped } from "react-icons/fc";
+import { FcCheckmark } from "react-icons/fc";
+import { FcHighPriority } from "react-icons/fc";
 
 
 
@@ -46,6 +50,9 @@ const Page = () => {
   const [selectedTaxRate, setSelectedTaxRate] = useState(""); // State for tax rate
   const [totalTaxRate, setTotalTaxRate] = useState(0); // State for total tax rate
   const [companyInfo, setCompanyInfo] = useState({});
+  const [deliveryType, setDeliveryType] = useState("delivery"); // State for delivery type
+  const [isTaxApplied, setIsTaxApplied] = useState(false);  // State for tax applied
+  const [lastInvoiceOrder, setLastInvoiceOrder] = useState(0);
 
 
   useEffect(() => {
@@ -78,14 +85,29 @@ const Page = () => {
     fetchProducts();
   }, []);
 
-  const onSubmit = data => {
+  const onSubmit = async (data) => {
     if (sameAddress) {
       data.deliveryAddress = data.billingAddress;
     }
-    data.taxRate = selectedTaxRate; // Include the selected tax rate in the form data
-    data.totalTaxRate = totalTaxRate; // Include the selected total tax rate in the form data
-    setAllData([data, items]);
-    Toast.success("Invoice generated successfully", { autoClose: 2000 });
+
+    data.taxRate = selectedTaxRate;
+    data.totalTaxRate = totalTaxRate;
+    data.deliveryType = deliveryType;
+    if (data.deliveryType === "pickup") {
+      data.deliveryAddress = "This Order pickup by customer";
+      data.billingAddress = "This Order pickup by customer";
+    }
+    data.invoiceNumber = generateInvoiceNumber();
+    const invoiceData = { ...data, items };
+
+    try {
+      await addDoc(collection(db, 'invoices'), invoiceData); // Store data in Firestore
+      setAllData([data, items]);
+      Toast.success("Invoice generated successfully", { autoClose: 2000 });
+    } catch (error) {
+      console.error("Error storing invoice in Firebase: ", error);
+      Toast.error("Failed to Genrated", { autoClose: 2000 });
+    }
   };
 
   const PreviewPdf = () => {
@@ -118,12 +140,12 @@ const Page = () => {
     Toast.warn("Item removed", { autoClose: 500 });
   };
 
-  function generateInvoiceNumber(isFinalInvoice = false) {
-    const lastInvoiceOrder=0;
+  function generateInvoiceNumber(isFinalInvoice = false, lastInvoiceOrder = 0) {
+    let currentDraftVersion = 0;
     if (isFinalInvoice) {
       currentDraftVersion = 1;
     } else {
-      currentDraftVersion++; 
+      currentDraftVersion++;
     }
     const invoiceNumber = `#${String(lastInvoiceOrder).padStart(3, '0')}-${currentDraftVersion}`;
     return invoiceNumber;
@@ -173,61 +195,122 @@ const Page = () => {
               />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="text-sm font-medium text-gray-500">Billing Address</label>
-            <textarea
-              required
-              placeholder="Billing Address"
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-              {...register("billingAddress")}
-            />
-          </div>
 
-          {/* Checkbox for same address */}
-          <div className="mb-4 flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="sameAddress"
-              checked={sameAddress}
-              onChange={(e) => setSameAddress(e.target.checked)}
-            />
-            <label htmlFor="sameAddress" className="text-sm font-medium text-gray-500">
-              Delivery address is the same as billing address
-            </label>
-          </div>
+          {/* pickup checkbox */}
+          <h3 class="mb-2 mt-6 font-semibold text text-orange-500  dark:text-white">Delivery type:</h3>
+          <ul class="gap-2 flex mb-5">
+            <li>
+              <input type="radio" onChange={(e) => setDeliveryType(e.target.value)} id="delivery" name="deliverytype" value="delivery" class="hidden peer" required />
+              <label for="delivery" class="inline-flex items-center justify-center w-20 h-20 p-5 text-gray-500 bg-white border-2 border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 peer-checked:border-blue-600 hover:text-gray-600 dark:peer-checked:text-gray-300 peer-checked:text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700">
+                <div class="flex flex-col justify-center items-center">
+                  <FcShipped class="mb-1 w-7 h-7 text-sky-500" fill="currentColor" />
+                  <div class="w-full font-semibold">Shipping</div>
+                </div>
+              </label>
+            </li>
+            <li>
+              <input type="radio" onChange={(e) => setDeliveryType(e.target.value)} id="pickup" name="deliverytype" value="pickup" class="hidden peer" required />
+              <label for="pickup" class="inline-flex items-center justify-center w-20 h-20 p-5 text-gray-500 bg-white border-2 border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 peer-checked:border-blue-600 hover:text-gray-600 dark:peer-checked:text-gray-300 peer-checked:text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700">
+                <div class="flex flex-col justify-center items-center">
+                  <GiCardPickup class="mb-1 w-7 h-7 text-sky-500" fill="currentColor" />
+                  <div class="w-full font-semibold">Pickup</div>
+                </div>
+              </label>
+            </li>
+          </ul>
 
-          {/* Delivery Address */}
-          {!sameAddress && (
-            <div className="mb-4">
-              <label className="text-sm font-medium text-gray-500">Delivery Address</label>
-              <textarea
-                required
-                placeholder="Delivery Address"
-                className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
-                {...register("deliveryAddress")}
-              />
-            </div>
-          )}
+          {
+            deliveryType === "delivery" ?
+              <>
+                {/* billig address */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-500">Billing Address</label>
+                  <textarea
+                    required
+                    placeholder="Billing Address"
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
+                    {...register("billingAddress")}
+                  />
+                </div>
 
+                {/* Checkbox for same address */}
+                <div className="mb-4 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="sameAddress"
+                    checked={sameAddress}
+                    onChange={(e) => setSameAddress(e.target.checked)}
+                  />
+                  <label htmlFor="sameAddress" className="text-sm font-medium text-gray-500">
+                    Delivery address is the same as billing address
+                  </label>
+                </div>
+
+                {/* Delivery Address */}
+                {!sameAddress && (
+                  <div className="mb-4">
+                    <label className="text-sm font-medium text-gray-500">Delivery Address</label>
+                    <textarea
+                      required
+                      placeholder="Delivery Address"
+                      className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2"
+                      {...register("deliveryAddress")}
+                    />
+                  </div>
+                )}
+              </> :
+
+              <div className="flex justify-center">
+                <span className="text-center my-3 py-1.5 px-3 bg-blue-400 rounded  text-white">This Order pickup by customer</span>
+              </div>
+          }
+
+          {/* Tax or without Tax */}
+          <h3 class="mb-2 mt-6 font-semibold text text-orange-500  dark:text-white">Tax Applied ?</h3>
+          <ul class="gap-2 flex mb-5">
+            <li>
+              <input type="radio" onChange={(e) => setIsTaxApplied(true)} id="tax" name="isTaxApplied" value={true} class="hidden peer" required />
+              <label for="tax" class="inline-flex items-center justify-center w-20 h-20 p-5 text-gray-500 bg-white border-2 border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 peer-checked:border-blue-600 hover:text-gray-600 dark:peer-checked:text-gray-300 peer-checked:text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700">
+                <div class="flex flex-col justify-center items-center">
+                  <FcCheckmark class="mb-1 w-7 h-7 text-sky-500" fill="currentColor" />
+                  <div class="w-full font-semibold text-center">Yes</div>
+                </div>
+              </label>
+            </li>
+            <li>
+              <input type="radio" onChange={(e) => setIsTaxApplied(false)} id="notax" name="isTaxApplied" value={false} class="hidden peer" required />
+              <label for="notax" class="inline-flex items-center justify-center w-20 h-20 p-5 text-gray-500 bg-white border-2 border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 peer-checked:border-blue-600 hover:text-gray-600 dark:peer-checked:text-gray-300 peer-checked:text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700">
+                <div class="flex flex-col justify-center items-center">
+                  <FcHighPriority class="mb-1 w-7 h-7 text-sky-500" fill="currentColor" />
+                  <div class="w-full font-semibold text-center">No</div>
+                </div>
+              </label>
+            </li>
+          </ul>
           {/* Tax Rate Selection using Combobox */}
-          <div className="mb-4">
-            <label className="text-sm font-medium text-gray-500">Tax State</label>
-            <Comboboxtax
-              products={provinces.map(province => ({
-                label: `${province.name} (${province.code}): ${province.taxRate}`,
-                value: `${province.code}: ${province.taxRate}`
-              }))}
-              value={selectedTaxRate}
-              onChange={(value) => {
-                setSelectedTaxRate(value);
-                const selectedProvince = provinces.find(province => value.startsWith(province.code));
-                if (selectedProvince) {
-                  setTotalTaxRate(selectedProvince.totalTaxRate); // Update total tax rate
-                }
-              }}
-            />
-            <p className=" text-xs text-gray-400 p-1">search with short name (New Brunswick : NB)</p>
-          </div>
+          {
+            isTaxApplied ? <div className="mb-4">
+              <label className="text-sm font-medium text-gray-500">Tax State</label>
+              <Comboboxtax
+                products={provinces.map(province => ({
+                  label: `${province.name} (${province.code}): ${province.taxRate}`,
+                  value: `${province.code}: ${province.taxRate}`
+                }))}
+                value={selectedTaxRate}
+                onChange={(value) => {
+                  setSelectedTaxRate(value);
+                  const selectedProvince = provinces.find(province => value.startsWith(province.code));
+                  if (selectedProvince) {
+                    setTotalTaxRate(selectedProvince.totalTaxRate); // Update total tax rate
+                  }
+                }}
+              />
+              <p className=" text-xs text-gray-400 p-1">search with short name (New Brunswick : NB)</p>
+            </div> : <div className="flex justify-center">
+              <span className="text-center my-3 py-1.5 px-3 bg-blue-400 rounded  text-white">Tax Not Applied</span>
+            </div>
+          }
+
 
           <hr className="py-2" />
           {/* Items Section */}
@@ -293,6 +376,8 @@ const Page = () => {
         </div>
 
       </div>
+
+      {/* / new invoice genrate */}
       <div className="p-2 w-1/2 flex gap-6 justify-end mt-5">
         <Button
           className=" bg-blue-600 text-white font-semibold rounded-lg py-4 px-4 shadow-md hover:bg-blue-700 transition duration-200 ease-in-out"

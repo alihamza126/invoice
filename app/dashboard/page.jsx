@@ -28,19 +28,6 @@ const page = () => {
             <input type="number" placeholder="Quantity" onChange={(e) => setProduct({ ...product, quantity: e.target.value })} />
             <input type="number" placeholder="Sales Price" onChange={(e) => setProduct({ ...product, price: e.target.value })} />
 
-            {/* Customer Information Fields
-            <input type="text" placeholder="Customer Name" onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
-            <input type="text" placeholder="Address" onChange={(e) => setCustomer({ ...customer, address: e.target.value })} />
-            <input type="text" placeholder="Phone" onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} />
-            <input type="email" placeholder="Email" onChange={(e) => setCustomer({ ...customer, email: e.target.value })} /> */}
-
-            {/* Tax Rate Selection */}
-            {/* <select onChange={(e) => setTaxRate(e.target.value)}>
-                <option value="">Select Province</option>
-                <option value="5">Alberta (AB): 5% GST</option>
-                <option value="12">British Columbia (BC): 5% GST + 7% PST</option>
-            </select> */}
-
             <button type="submit">Submit Order</button>
         </form>
     );
