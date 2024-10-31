@@ -1,84 +1,74 @@
- <div className="w-[45%] bg-white p-6 rounded-lg shadow border h-screen sticky top-6">
-          <h2 className="text-xl font-semibold mb-4">Preview</h2>
-
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-2xl font-semibold mb-4">Invoice</h3>
-            <p className="text-sm font-medium text-gray-500">Invoice Number</p>
-            <p className="mb-4 font-medium">UXERFLOW-INV001</p>
-
-            {/* Billed to */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Billed to</h4>
-                <p className="font-medium">Acme Enterprise</p>
-                <p className="text-sm text-gray-500">acme@enterprise.com</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Due date</h4>
-                <p className="font-medium">27 August 2024</p>
-              </div>
-            </div>
-
-            {/* Address */}
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-500">Address</h4>
-              <p className="font-medium">1901 Thornridge Cir. Shiloh, Hawaii, USA. 81063</p>
-            </div>
-
-            {/* Items Table */}
-            <div className="border-t border-gray-200 mt-4 pt-4">
-              <div className="grid grid-cols-4 gap-2 mb-2 text-gray-500">
-                <span>Items</span>
-                <span>QTY</span>
-                <span>Rate</span>
-                <span>Total</span>
-              </div>
-              <div className="grid grid-cols-4 gap-2 mb-2 font-medium">
-                <span>Web Design</span>
-                <span>2</span>
-                <span>$0</span>
-                <span>$0</span>
-              </div>
-            </div>
-
-            {/* Totals */}
-            <div className="mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <p className="text-sm text-gray-500">Subtotal</p>
-                <p className="text-right">$0</p>
-                <p className="text-sm text-gray-500">Discount</p>
-                <p className="text-right">$0</p>
-                <p className="text-sm text-gray-500">Tax</p>
-                <p className="text-right">$0</p>
-                <p className="text-lg font-semibold text-gray-800">Total</p>
-                <p className="text-lg font-semibold text-right">$0</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-
-
-
-
-
-
-
-        {/* <div className="grid grid-cols-2 items-center">
-                <div>
-                    <img
-                        src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Tailwind_CSS_Logo.svg"
-                        alt="company-logo"
-                        height="100"
-                        width="100"
-                    />
+ {modalIsOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg w-11/12 md:w-1/3 p-6">
+                        <h2 className="text-xl font-bold mb-4">Edit Order</h2>
+                        {currentOrder && (
+                            <div>
+                                <div className="mb-4">
+                                    <label className="block font-semibold">Tracking Number</label>
+                                    <input
+                                        type="text"
+                                        value={currentOrder.trackingNumber}
+                                        onChange={(e) => setCurrentOrder({ ...currentOrder, trackingNumber: e.target.value })}
+                                        className="mt-1 p-2 w-full border border-gray-300 rounded"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block font-semibold">Delivery Status</label>
+                                    <select
+                                        value={currentOrder.deliveryStatus}
+                                        onChange={(e) => setCurrentOrder({ ...currentOrder, deliveryStatus: e.target.value })}
+                                        className="mt-1 p-2 w-full border border-gray-300 rounded"
+                                    >
+                                        <option value="shipped">Shipped</option>
+                                        <option value="delivered">Delivered</option>
+                                    </select>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block font-semibold">Shipping Fee</label>
+                                    <input
+                                        type="number"
+                                        value={currentOrder.shippingFee}
+                                        onChange={(e) => setCurrentOrder({ ...currentOrder, shippingFee: e.target.value })}
+                                        className="mt-1 p-2 w-full border border-gray-300 rounded"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block font-semibold">Upload Invoice</label>
+                                    <input
+                                        type="file"
+                                        accept="application/pdf,image/*"
+                                        onChange={handleFileChange}
+                                        className="mt-1 w-full p-2 border border-gray-300 rounded"
+                                    />
+                                    {invoicePreview && (
+                                        <div className="mt-3">
+                                            <p className="text-gray-500 mb-2">Invoice Preview:</p>
+                                            {invoiceFile.type === "application/pdf" ? (
+                                                <embed src={invoicePreview} type="application/pdf" width="100%" height="200px" className="rounded-md" />
+                                            ) : (
+                                                <img src={invoicePreview} alt="Invoice Preview" className="max-w-full h-48 object-cover rounded-md" />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={handleUpdate}
+                                        className="bg-blue-500 text-white px-4 py-2 rounded"
+                                        disabled={loading}
+                                    >
+                                        {loading ? "Updating..." : "Update Order"}
+                                    </button>
+                                    <button
+                                        onClick={handleModalClose}
+                                        className="bg-gray-500 text-white px-4 py-2 rounded ml-2"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-
-                <div className="text-right">
-                    <p>Tailwind Inc.</p>
-                    <p className="text-gray-500 text-sm">sales@tailwindcss.com</p>
-                    <p className="text-gray-500 text-sm mt-1">+41-442341232</p>
-                    <p className="text-gray-500 text-sm mt-1">VAT: 8657671212</p>
-                </div>
-            </div> */}
+            )}

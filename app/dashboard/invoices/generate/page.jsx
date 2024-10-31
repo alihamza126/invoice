@@ -1,12 +1,12 @@
 "use client";
 
 import { Comboboxproducts } from "@/components/common/ComboBox";
-import { useForm } from "react-hook-form";
+import { get, useForm } from "react-hook-form";
 import { FcRules } from "react-icons/fc";
 import { FaTrash } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { db, storage } from "@/lib/firebase";
-import { addDoc, collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, runTransaction } from "firebase/firestore";
 import { Toast, ToastProvider } from "@/lib/tostify";
 import { Comboboxtax } from "@/components/common/ComboBoxTax";
 import { Button } from "@/components/ui/button"
@@ -56,7 +56,7 @@ const Page = () => {
   const [companyInfo, setCompanyInfo] = useState({});
   const [deliveryType, setDeliveryType] = useState("delivery"); // State for delivery type
   const [isTaxApplied, setIsTaxApplied] = useState(false);  // State for tax applied
-  const [lastInvoiceOrder, setLastInvoiceOrder] = useState(0);
+  const [isFinalInvoice, setIsFinalInvoice] = useState(false);
   const [loading, setLoading] = useState(false)
 
 
@@ -73,7 +73,6 @@ const Page = () => {
         } catch (error) {
           console.error("Error fetching company information:", error);
         }
-
         const productsCollection = collection(db, "products");
         const productSnapshot = await getDocs(productsCollection);
         const productList = productSnapshot.docs.map(doc => ({
@@ -81,7 +80,6 @@ const Page = () => {
           ...doc.data()
         }));
         setProducts(productList);
-        // console.log(productList)
       } catch (error) {
         console.error("Error fetching products:", error);
       }
@@ -96,36 +94,58 @@ const Page = () => {
       data.deliveryAddress = data.billingAddress;
     }
 
+    const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const taxPrice = (totalTaxRate * (total / 100));
+
+    data.subtotal = total;
+    data.tax = taxPrice;
+    data.totaldues = total + taxPrice;
     data.taxRate = selectedTaxRate;
     data.totalTaxRate = totalTaxRate;
     data.deliveryType = deliveryType;
+
+
+
+
     if (data.deliveryType === "pickup") {
       data.deliveryAddress = "This Order pickup by customer";
       data.billingAddress = "This Order pickup by customer";
     }
-    data.invoiceNumber = generateInvoiceNumber();
-    const invoiceData = { ...data, items };
+
+    // Retrieve last generated invoice number, increment, and update
+    const counterRef = doc(db, "counters", "invoiceCounter");
 
     try {
-      // Save data temporarily to use for PDF generation
+      const newInvoiceNumber = await runTransaction(db, async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        let nextInvoiceNumber = 1; // Default starting number if the document doesn't exist
+        if (!counterDoc.exists()) {
+          transaction.set(counterRef, { lastInvoiceNumber: nextInvoiceNumber });
+        } else {
+          const lastInvoiceNumber = counterDoc.data().lastInvoiceNumber || 0;
+          nextInvoiceNumber = lastInvoiceNumber + 1;
+          transaction.update(counterRef, { lastInvoiceNumber: nextInvoiceNumber });
+        }
+        return nextInvoiceNumber;
+      });
+
+      data.invoiceNumber = generateInvoiceNumber(isFinalInvoice, newInvoiceNumber);
+      const invoiceData = { ...data, items };
+
       setAllData([data, items]);
-
-      // Generate and upload PDF to Firebase Storage
       const pdfUrl = await handleGenerateAndUploadPdf([data, items], companyInfo);
-
-      // Add the PDF download URL to the invoice data
       invoiceData.pdfUrl = pdfUrl;
 
-      // Store data with PDF URL in Firestore
+      // Save invoice data with generated invoice number
       await addDoc(collection(db, 'invoices'), invoiceData);
 
       Toast.success("Invoice generated successfully", { autoClose: 2000 });
     } catch (error) {
       console.error("Error storing invoice in Firebase: ", error);
       Toast.error("Failed to Generate Invoice", { autoClose: 2000 });
+    } finally {
       setLoading(false);
     }
-    setLoading(false);
   };
 
 
@@ -160,10 +180,8 @@ const Page = () => {
   };
 
   function generateInvoiceNumber(isFinalInvoice = false, lastInvoiceOrder = 0) {
-    let currentDraftVersion = 0;
+    let currentDraftVersion = 1;
     if (isFinalInvoice) {
-      currentDraftVersion = 1;
-    } else {
       currentDraftVersion++;
     }
     const invoiceNumber = `#${String(lastInvoiceOrder).padStart(3, '0')}-${currentDraftVersion}`;
@@ -181,6 +199,9 @@ const Page = () => {
     const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL; // Return this URL to save in Firestore
   };
+
+  // const total = allData[1]?.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  // const taxPrice = (allData[0]?.totalTaxRate) * (total / 100)
 
 
   return (
@@ -236,7 +257,7 @@ const Page = () => {
               <label for="delivery" class="inline-flex items-center justify-center w-20 h-20 p-5 text-gray-500 bg-white border-2 border-gray-200 rounded-lg cursor-pointer dark:hover:text-gray-300 dark:border-gray-700 peer-checked:border-blue-600 hover:text-gray-600 dark:peer-checked:text-gray-300 peer-checked:text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700">
                 <div class="flex flex-col justify-center items-center">
                   <FcShipped class="mb-1 w-7 h-7 text-sky-500" fill="currentColor" />
-                  <div class="w-full font-semibold">Shipping</div>
+                  <div class="w-full font-semibold">Delivery</div>
                 </div>
               </label>
             </li>
@@ -344,6 +365,14 @@ const Page = () => {
           }
 
 
+          <hr className="py-2" />
+          <div class="mx-auto py-4">
+            <label for="invoicetype" class="block mb-2 text-sm font-medium text-gray-500 font-semibold dark:text-white">Invoice type</label>
+            <select onChange={(e) => setIsFinalInvoice(e.target.value)} id="invoicetype" class="bg-gray-50 border rounded-lg border-gray-300 text-gray-900 text-sm  overflow-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5">
+              <option selected value={false}>First draft send to customer</option>
+              <option value={true}>Final Invoice</option>
+            </select>
+          </div>
           <hr className="py-2" />
           {/* Items Section */}
           <div>
